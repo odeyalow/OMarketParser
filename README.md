@@ -1,78 +1,151 @@
-# OMarket Selenium Parser
+# OMarket Parser
 
-Simple Python parser built with `selenium` for `https://omarket.kz/`.
+Веб-интерфейс для парсинга `omarket.kz` с быстрым backend на Python/Flask.
 
-What it does:
+## Что делает проект
 
-- opens the OMarket homepage in Chrome
-- waits until the page is ready
-- reads client-side data from `window.__data`
-- extracts page title, current URL, and popular categories
-- prints the result as JSON
+- принимает поисковый запрос
+- проходит по страницам выдачи OMarket
+- собирает ENSTRU-строки из карточек товаров
+- показывает прогресс, позволяет остановить парсер
+- хранит результаты в памяти процесса
+- экспортирует результат в Excel
 
-## Setup
+## Важное ограничение
+
+Проект хранит состояние парсинга в памяти Python-процесса.
+
+Из-за этого:
+
+- запускать нужно только в `1` worker
+- нельзя поднимать несколько экземпляров backend одновременно
+- после перезапуска процесса история и таблица очищаются
+
+## Локальный запуск на Windows
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-The script uses Selenium Manager, so you do not need to install `chromedriver` manually.
-Google Chrome must be installed on the machine.
-
-## Mini Frontend
-
-Run the local web UI:
-
-```powershell
 .\run_ui.bat
 ```
 
-Then open `http://127.0.0.1:5050` if the browser did not open automatically.
+После запуска открой `http://127.0.0.1:5050`.
 
-The frontend gives you:
+## Локальный запуск на Linux
 
-- an input for a search query
-- a button that opens OMarket in Chrome
-- automatic typing into the OMarket search field
-
-## Run
-
-One-command launch from PowerShell:
-
-```powershell
-.\run.bat
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+chmod +x run_ui.sh
+./run_ui.sh
 ```
 
-One-command headless launch:
+После запуска открой `http://127.0.0.1:5050`.
 
-```powershell
-.\run.bat --headless
+## Деплой в Proxmox LXC / VM
+
+Ниже пример для `Debian 12` или `Ubuntu 22.04/24.04`.
+
+### 1. Установить системные пакеты
+
+```bash
+apt update
+apt install -y git python3 python3-venv python3-pip nginx
 ```
 
-The first start will create `.venv` and install dependencies automatically.
+### 2. Забрать проект с GitHub
 
-Open the site in a visible browser window:
-
-```powershell
-python omarket_parser.py
+```bash
+cd /opt
+git clone <URL_ТВОЕГО_GITHUB_РЕПО> omarket-parser
+cd /opt/omarket-parser
 ```
 
-Run in headless mode:
+### 3. Подготовить запуск
 
-```powershell
-python omarket_parser.py --headless
+```bash
+chmod +x run_ui.sh
+./run_ui.sh
 ```
 
-Save the result to a file:
+Это проверочный запуск. Приложение поднимется на `127.0.0.1:5050`.
 
-```powershell
-python omarket_parser.py --headless --output result.json
+Остановить можно через:
+
+```bash
+Ctrl+C
 ```
 
-Limit the number of categories:
+### 4. Подключить systemd
 
-```powershell
-python omarket_parser.py --headless --limit 5
+Скопируй готовый unit:
+
+```bash
+cp deploy/systemd/omarket-parser.service /etc/systemd/system/omarket-parser.service
 ```
+
+Если нужно, поправь в unit:
+
+- `User`
+- `Group`
+- `WorkingDirectory`
+- `ExecStart`
+
+По умолчанию там путь:
+
+- `/opt/omarket-parser`
+
+Затем включи сервис:
+
+```bash
+systemctl daemon-reload
+systemctl enable --now omarket-parser
+systemctl status omarket-parser
+```
+
+### 5. Подключить Nginx
+
+Скопируй конфиг:
+
+```bash
+cp deploy/nginx/omarket-parser.conf /etc/nginx/sites-available/omarket-parser.conf
+ln -s /etc/nginx/sites-available/omarket-parser.conf /etc/nginx/sites-enabled/omarket-parser.conf
+rm -f /etc/nginx/sites-enabled/default
+nginx -t
+systemctl restart nginx
+```
+
+После этого приложение будет доступно по IP контейнера на `80` порту.
+
+## Полезные команды на сервере
+
+Перезапуск сервиса:
+
+```bash
+systemctl restart omarket-parser
+```
+
+Логи сервиса:
+
+```bash
+journalctl -u omarket-parser -f
+```
+
+Проверка Nginx:
+
+```bash
+nginx -t
+```
+
+## Production-запуск
+
+На Linux проект запускается через `gunicorn`:
+
+```bash
+gunicorn -w 1 -b 127.0.0.1:5050 --timeout 300 wsgi:app
+```
+
+Именно `-w 1`, потому что иначе состояние парсера будет расходиться между воркерами.
+
