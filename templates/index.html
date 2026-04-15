@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Парсер OMarket</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Crect x='15' y='16' width='34' height='32' rx='4' fill='%23fff'/%3E%3Crect x='22' y='10' width='20' height='11' rx='3' fill='%23000'/%3E%3C/svg%3E"
+    >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="panel">
+        <div class="control-row">
+          <input
+            id="search-query-input"
+            class="search-input"
+            type="text"
+            maxlength="350"
+            autocomplete="off"
+            placeholder="Введите поисковый запрос"
+          >
+          <div class="page-limit-group">
+            <button
+              id="all-pages-button"
+              class="mode-button is-active"
+              type="button"
+              aria-pressed="true"
+            >
+              Все
+            </button>
+            <input
+              id="max-pages-input"
+              class="pages-input"
+              type="number"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              placeholder="Страниц"
+            >
+          </div>
+          <button id="run-parser-button" class="run-button" type="button">Запустить</button>
+          <button id="stop-parser-button" class="stop-button" type="button">Остановить</button>
+          <button id="reset-parser-button" class="reset-button" type="button">Сбросить</button>
+        </div>
+
+        <div class="status-row">
+          <p id="status-text" class="status-text">Готово к запуску.</p>
+          <p id="progress-text" class="progress-text">Пока нет сохраненных строк.</p>
+        </div>
+
+        <div id="current-product-box" class="current-product-box hidden">
+          <span class="current-product-label">Текущий товар</span>
+          <a id="current-product-link" class="current-product-link" href="#" target="_blank" rel="noreferrer"></a>
+        </div>
+      </section>
+
+      <section class="results-panel">
+        <div class="results-head">
+          <div class="results-copy">
+            <h1>Сохраненные строки ENSTRU</h1>
+            <p id="results-summary" class="results-summary">Данных пока нет.</p>
+          </div>
+          <button id="export-excel-button" class="export-button" type="button" disabled>
+            Экспорт в Excel
+          </button>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          Пока не сохранено ни одной строки таблицы.
+        </div>
+
+        <div id="results-table-wrap" class="table-wrap hidden">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Товар</th>
+                <th>KZTIN</th>
+                <th>ENSTRU</th>
+                <th>Наименование</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+
+        <div id="results-pagination" class="results-pagination hidden">
+          <button id="results-prev-button" class="pager-button" type="button">Назад</button>
+          <p id="results-page-indicator" class="results-page-indicator">Страница 1 из 1</p>
+          <button id="results-next-button" class="pager-button" type="button">Далее</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="finish-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="finish-modal-title">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2 id="finish-modal-title" class="modal-title">Парсинг завершен</h2>
+          <button id="finish-modal-close" class="modal-close" type="button" aria-label="Закрыть">Закрыть</button>
+        </div>
+        <p id="finish-modal-text" class="modal-text">Работа парсера завершена.</p>
+        <div class="modal-grid">
+          <div class="modal-item">
+            <span class="modal-label">Запрос</span>
+            <strong id="finish-modal-query" class="modal-value">-</strong>
+          </div>
+          <div class="modal-item">
+            <span class="modal-label">Страницы</span>
+            <strong id="finish-modal-pages" class="modal-value">0</strong>
+          </div>
+          <div class="modal-item">
+            <span class="modal-label">Товары</span>
+            <strong id="finish-modal-products" class="modal-value">0</strong>
+          </div>
+          <div class="modal-item">
+            <span class="modal-label">Строки</span>
+            <strong id="finish-modal-rows" class="modal-value">0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </body>
+</html>
